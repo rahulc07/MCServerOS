@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#Source/Setup 
+source version.sh
+source setup.sh
+
+#Change directory 
+cd $BUILD_DIR/src/shadow-$SHADOW_VER
+
+#Change config to secure passwords 
+sed -e 's@#ENCRYPT_METHOD DES@ENCRYPT_METHOD SHA512@' \
+    -e 's@/var/spool/mail@/var/mail@'                 \
+    -e '/PATH=/{s@/sbin:@@;s@/bin:@@}'                \
+    -i etc/login.defs     
+
+#
+
+export LD_LIBRARY_PATH=$ROOTFS/usr/lib
+
+#Create passwd 
+touch $ROOTFS/usr/bin/passwd
+
+./configure \
+    --prefix=$ROOTFS/usr \
+    --sysconfdir=/etc \
+    --disable-static \
+    --with-group-name-max-length=32 \
+    --without-libpam \
+    --without-audit \
+    --host=$TARGET \
+
+#Compile 
+make -j$JOBS
+#Install
+make DESTDIR=$ROOTFS install
+echo "root:$6$iV7r2ksJI5yTLXt3$EQ8jJQOoMrpAIBpyJVXS1InvkWSjrVyh028WpwbfjL/XNhOJ0kXJh61KWDYfpxh8y6DEqTGCDyULIvQ/ODjlq.:18894::::::" > $ROOTFS/etc/shadow
